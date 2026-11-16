@@ -1,0 +1,19 @@
+name: Bug report
+description: Something does not work as documented
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Please run `percia-bridge doctor` first. **Never paste API keys, camera tokens (`pc_...`) or camera passwords.** Bridge logs mask them, but check before you paste.
+        Found a security problem? Do not open an issue: see SECURITY.md.
+  - type: input
+    attributes: {label: Bridge version and how you run it, description: "`percia-bridge version`; Docker, Home Assistant add-on or pip", placeholder: "0.2.0, Docker on a Raspberry Pi 5"}
+    validations: {required: true}
+  - type: dropdown
+    attributes:
+      label: Camera source
+      options: [ONVIF, RTSP, Frigate, Home Assistant, Other]
+    validations: {required: true}
+  - type: textarea
+    attributes: {label: What happened, description: "What you expected, what you saw, and the output of `percia-bridge status` / `doctor`"}
+    validations: {required: true}

@@ -1,0 +1,22 @@
+# Every input type in one file. Copy the parts you need. Secrets can be ${ENV} references.
+server: https://percia.ai
+api_key_file: /config/api_key       # or set PERCIA_API_KEY in the environment
+state_dir: /data
+auto_add: true
+health:
+  listen: 127.0.0.1:9477            # use 0.0.0.0:9477 to let Prometheus scrape /metrics from another host
+video:
+  mode: auto                        # auto | copy | transcode
+  max_height: 720                   # transcoding cap (copy mode never rescales)
+  max_fps: 15
+  max_bitrate_kbps: 1500
+rtsp_transport: tcp
+telemetry: false                    # anonymous usage events are off unless you set true and a key
+cameras:
+  - name: front-door                # plain RTSP
+    source: {type: rtsp, url: "rtsp://viewer:${DOOR_PASSWORD}@192.168.1.20:554/stream1"}
+  - name: garage                    # ONVIF (URI is looked up at every start); an H.265 camera is transcoded automatically
+    source: {type: onvif, host: 192.168.1.30, port: 80, username: admin, password: "${GARAGE_PASSWORD}", profile: subStream}
+    video: {mode: auto, max_height: 480}
+  - name: driveway                  # Frigate restream
+    source: {type: frigate, url: "http://frigate:5000", camera: driveway}

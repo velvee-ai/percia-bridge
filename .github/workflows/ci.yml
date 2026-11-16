@@ -1,0 +1,57 @@
+name: CI
+on:
+  push:
+    branches: [main]
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    strategy:
+      matrix:
+        python: ["3.11", "3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: ${{ matrix.python }}
+      - run: pip install -e ".[dev]"
+      - run: ruff check src tests scripts
+      - run: pytest
+  e2e:
+    # Real ffmpeg (>= 7.1 with the whip muxer) + MediaMTX, all on localhost. Uses the project's own image for ffmpeg.
+    runs-on: ubuntu-24.04
+    needs: test
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: "3.12"
+      - name: Install MediaMTX
+        run: |
+          curl -fsSL https://github.com/bluenviron/mediamtx/releases/download/v1.21.2/mediamtx_v1.21.2_linux_amd64.tar.gz -o mtx.tgz
+          mkdir mtx && tar -xzf mtx.tgz -C mtx && sudo install mtx/mediamtx /usr/local/bin/mediamtx
+      - name: Install a static ffmpeg with the whip muxer (BtbN build; Ubuntu's ffmpeg has no whip)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release download latest -R BtbN/FFmpeg-Builds -p "ffmpeg-n8.1-latest-linux64-gpl-8.1.tar.xz" -O ff.txz
+          mkdir ff && tar -xJf ff.txz -C ff --strip-components=1 && sudo install ff/bin/ffmpeg ff/bin/ffprobe /usr/local/bin/
+          ffmpeg -hide_banner -muxers | grep whip
+      - run: pip install -e ".[dev]"
+      - run: python scripts/e2e.py
+  docker-check:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Build (fails unless ffmpeg >= 7.1 with whip is in the image)
+        run: docker build -t percia-bridge:ci .
+      - name: Smoke test
+        run: docker run --rm percia-bridge:ci version

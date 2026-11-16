@@ -1,0 +1,24 @@
+# Raspberry Pi / Linux without Docker: /etc/systemd/system/percia-bridge.service
+# Needs: an ffmpeg >= 7.1 WITH the whip muxer (Debian/Raspberry Pi OS packages do NOT have it: use a static build, e.g.
+# BtbN's ffmpeg-n8.1-linuxarm64-gpl, and set ffmpeg_bin in the config), and: pipx install git+https://github.com/velvee-ai/percia-bridge
+# (or `pipx install percia-bridge` once it is on PyPI). The Docker image is the easier way.
+[Unit]
+Description=Percia Bridge
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=percia
+Environment=PERCIA_BRIDGE_CONFIG=/etc/percia-bridge/config.yaml PERCIA_BRIDGE_STATE=/var/lib/percia-bridge
+ExecStart=/home/percia/.local/bin/percia-bridge run
+Restart=always
+RestartSec=5
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=read-only
+PrivateTmp=yes
+StateDirectory=percia-bridge
+ConfigurationDirectory=percia-bridge
+
+[Install]
+WantedBy=multi-user.target

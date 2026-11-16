@@ -1,0 +1,101 @@
+name: Release
+# On a stable version tag (vX.Y.Z): builds and pushes the multi-arch images
+#   ghcr.io/velvee-ai/percia-bridge        (linux/amd64 + linux/arm64)
+#   ghcr.io/velvee-ai/percia-bridge-addon  (Home Assistant add-on, thin layer over the image above)
+# and then creates the GitHub release with the notes from CHANGELOG.md.
+# Uses only the repository's own GITHUB_TOKEN; no other secrets.
+on:
+  push:
+    tags: ["v[0-9]+.[0-9]+.[0-9]+"]
+
+permissions: {}
+
+jobs:
+  image:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: The tag must match the package version
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          v=$(python3 -c 'import tomllib;print(tomllib.load(open("pyproject.toml","rb"))["project"]["version"])')
+          ha=$(sed -n 's/^version: "\(.*\)"/\1/p' homeassistant/config.yaml)
+          [ "v$v" = "$TAG" ] || { echo "tag $TAG != pyproject version $v"; exit 1; }
+          [ "$ha" = "$v" ] || { echo "homeassistant/config.yaml version $ha != $v"; exit 1; }
+          grep -q "^## $v\$" CHANGELOG.md || { echo "CHANGELOG.md has no '## $v' section"; exit 1; }
+      - uses: docker/setup-qemu-action@c7c53464625b32c7a7e944ae62b3e17d2b600130 # v3
+      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
+      - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - id: meta
+        uses: docker/metadata-action@c299e40c65443455700f0fdfc63efafe5b349051 # v5
+        with:
+          images: ghcr.io/velvee-ai/percia-bridge
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=raw,value=latest
+      - uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: GIT_SHA=${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      - name: Smoke test the pushed image
+        run: docker run --rm ghcr.io/velvee-ai/percia-bridge:${{ steps.meta.outputs.version }} version
+      - id: meta_addon
+        uses: docker/metadata-action@c299e40c65443455700f0fdfc63efafe5b349051 # v5
+        with:
+          images: ghcr.io/velvee-ai/percia-bridge-addon
+          tags: |
+            type=semver,pattern={{version}}
+            type=raw,value=latest
+      - name: Home Assistant add-on image (metadata layers only, nothing is emulated)
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
+        with:
+          context: homeassistant
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta_addon.outputs.tags }}
+          labels: ${{ steps.meta_addon.outputs.labels }}
+          build-args: BRIDGE_VERSION=${{ steps.meta.outputs.version }}
+
+  release:
+    needs: image
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Release notes from CHANGELOG.md
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          v="${TAG#v}"
+          awk -v h="## $v" '$0==h{f=1;next} /^## /{f=0} f' CHANGELOG.md > notes.md
+          [ -s notes.md ] || { echo "empty notes for $v"; exit 1; }
+          {
+            echo
+            echo "Image: \`docker pull ghcr.io/velvee-ai/percia-bridge:$v\` (linux/amd64, linux/arm64). Home Assistant add-on: see the README."
+          } >> notes.md
+      - name: Create the GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: gh release create "$TAG" --title "Percia Bridge ${TAG#v}" --notes-file notes.md --verify-tag

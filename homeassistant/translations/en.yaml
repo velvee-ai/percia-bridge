@@ -1,0 +1,19 @@
+configuration:
+  api_key:
+    name: Percia API key
+    description: A Percia API key with the scope cameras:write. Create one in your Percia account settings.
+  server:
+    name: Percia address
+    description: Leave the default unless Percia support told you otherwise. Must be https.
+  log_level:
+    name: Log level
+    description: How much the add-on writes to its log. Secrets are never logged.
+  max_height:
+    name: Maximum height (pixels) when re-encoding
+    description: Used only for cameras that are not H.264 or have B-frames. H.264 streams are sent untouched.
+  max_fps:
+    name: Maximum frames per second when re-encoding
+    description: Lower uses less CPU.
+  max_bitrate_kbps:
+    name: Maximum bitrate (kbit/s) when re-encoding
+    description: Lower uses less upload bandwidth.

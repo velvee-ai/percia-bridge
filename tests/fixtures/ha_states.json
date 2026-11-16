@@ -1,0 +1,7 @@
+[
+ {"entity_id": "light.kitchen", "state": "on", "attributes": {"friendly_name": "Kitchen"}},
+ {"entity_id": "camera.front_door", "state": "idle", "attributes": {"friendly_name": "Front Door (Reolink)", "entity_picture": "/api/camera_proxy/camera.front_door?token=abc"}},
+ {"entity_id": "camera.backyard", "state": "streaming", "attributes": {"friendly_name": "Back-yard"}},
+ {"entity_id": "camera.old", "state": "unavailable", "attributes": {}},
+ {"entity_id": "camera.日本", "state": "idle", "attributes": {"friendly_name": "玄関"}}
+]

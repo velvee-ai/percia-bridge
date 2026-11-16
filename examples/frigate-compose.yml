@@ -1,0 +1,31 @@
+# Percia Bridge next to Frigate. The bridge reads Frigate's go2rtc restream (rtsp://frigate:8554/<stream>), so Frigate
+# keeps the only connection to each camera and the bridge adds no extra camera load.
+#
+# 1. In Frigate's config make sure every camera has a go2rtc stream and uses it as its input:
+#      go2rtc:
+#        streams:
+#          front_door_sub: rtsp://user:pass@192.168.1.64/Streaming/Channels/102
+#      cameras:
+#        front_door:
+#          ffmpeg:
+#            inputs:
+#              - path: rtsp://127.0.0.1:8554/front_door_sub
+#                roles: [detect, record]
+# 2. Put your Percia API key in ./percia-bridge/api_key (chmod 600) or in the PERCIA_API_KEY environment variable.
+# 3. docker compose up -d   then:  docker compose exec percia-bridge percia-bridge status
+services:
+  frigate:
+    image: ghcr.io/blakeblackshear/frigate:stable
+    restart: unless-stopped
+    # ... your existing Frigate service (devices, volumes, shm_size) ...
+    ports:
+      - "5000:5000"
+
+  percia-bridge:
+    image: ghcr.io/velvee-ai/percia-bridge:latest
+    restart: unless-stopped
+    depends_on: [frigate]
+    volumes:
+      - ./percia-bridge/config:/config       # config.yaml + api_key (0600)
+      - ./percia-bridge/data:/data           # camera tokens (0600)
+    # No ports, no host network: the bridge only dials out. Healthcheck is built into the image.

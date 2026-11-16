@@ -1,0 +1,12 @@
+mqtt:
+  enabled: false
+go2rtc:
+  streams:
+    porch:
+      - rtsp://user:pass@192.168.1.80/stream
+cameras:
+  porch:
+    ffmpeg:
+      inputs:
+        - path: rtsp://127.0.0.1:8554/porch
+          roles: [detect, record]
