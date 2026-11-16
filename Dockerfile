@@ -28,7 +28,7 @@ RUN /ff/ffmpeg -hide_banner -muxers | grep -qE '^ +E +whip ' && /ff/ffmpeg -hide
  && v=$(/ff/ffmpeg -version | sed -n '1s/.*version n\?\([0-9]*\)\.\([0-9]*\).*/\1 \2/p') \
  && set -- $v && { [ "$1" -gt 7 ] || { [ "$1" -eq 7 ] && [ "$2" -ge 1 ]; }; } || { echo "ffmpeg >= 7.1 with whip + libx264 required"; exit 1; }
 
-FROM python:3.12-slim-trixie
+FROM python:3.15-slim-trixie
 RUN apt-get update && apt-get install -y --no-install-recommends tini ca-certificates && rm -rf /var/lib/apt/lists/*
 COPY --from=ffmpeg /ff/ffmpeg /ff/ffprobe /usr/local/bin/
 
