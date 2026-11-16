@@ -1,0 +1,10 @@
+{"mqtt": {"enabled": false},
+ "go2rtc": {"streams": {"front_door": ["rtsp://admin:SECRET@192.168.1.64:554/Streaming/Channels/101"], "front_door_sub": ["rtsp://admin:SECRET@192.168.1.64:554/Streaming/Channels/102"], "garage": ["rtsp://192.168.1.65/live"]}},
+ "cameras": {
+  "front_door": {"enabled": true, "ffmpeg": {"inputs": [
+     {"path": "rtsp://127.0.0.1:8554/front_door", "roles": ["record"]},
+     {"path": "rtsp://127.0.0.1:8554/front_door_sub", "roles": ["detect"]}]}},
+  "garage": {"ffmpeg": {"inputs": [{"path": "rtsp://127.0.0.1:8554/garage", "roles": ["detect", "record"]}]}},
+  "driveway": {"ffmpeg": {"inputs": [{"path": "rtsp://192.168.1.70/live", "roles": ["detect"]}]}},
+  "attic": {"enabled": false, "ffmpeg": {"inputs": [{"path": "rtsp://127.0.0.1:8554/attic_missing", "roles": ["detect"]}]}}
+ }}

@@ -1,0 +1,13 @@
+# /config/config.yaml for the compose file next to Frigate. Create it with:
+#   docker compose run --rm percia-bridge init           (asks for the API key, hidden)
+#   docker compose run --rm percia-bridge discover --frigate http://frigate:5000
+server: https://percia.ai
+api_key_file: /config/api_key
+state_dir: /data
+video:
+  mode: auto          # H.264 from Frigate is passed through untouched
+cameras:
+  - name: front-door
+    source: {type: frigate, url: "http://frigate:5000", camera: front_door}
+  - name: garage
+    source: {type: frigate, url: "http://frigate:5000", camera: garage}
